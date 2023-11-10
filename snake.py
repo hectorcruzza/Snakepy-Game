@@ -1,24 +1,50 @@
-import pygame, sys
+import pygame, sys,random
+from pygame.math import Vector2
 
-pygame.init()
-screen = pygame.display.set_mode((400, 500)) #Display surface
-clock = pygame.time.Clock() 
-# test_surface = pygame.Surface((100,200)) #Surface
-# test_surface.fill((0, 0, 255)) #Color
-# x_pos = 200 #Actualizar la  posición: y+ = abajo, y- = arriba
-# test_rect = test_surface.get_rect(center = (200, 250)) #Rectangulo posicionado en el centro de esas coordenadas
+class Snake:
+    def __init__(self): #Inicio
+        self.body = [Vector2(5,10),Vector2(6,10),Vector2(7,10),Vector2(8,10)] #El cuerpo de la serpiente.
 
+    def draw_snake(self):
+        for block in self.body:
+            x_pos = int(block.x * cell_size)
+            y_pos = int(block.y * cell_size)
+            #Creando el rectangulo
+            block_rect = pygame.Rect(x_pos,y_pos,cell_size,cell_size)
+            #Dibujando el rectangulo
+            pygame.draw.rect(screen,(45,154,200),block_rect)
+
+# class Fruit:
+#     def __init__(self): #Inicio
+#         #Crear un cuadro, usando y, x position.
+#         self.x = random.randint(0,cell_number - 1) #Uso de random para generar una fruta en una coordenada x al azar.
+#         self.y = random.randint(0,cell_number - 1) #Uso de random para generar una fruta en una coordenada y al azar.
+#         self.pos = Vector2(self.x,self.y) #Evitar poner pygame.math implementandolo. Se hace uso de vectores para la posición. Tablero dividido en cuadros.
+
+#     def draw_fruit(self):
+#         #Creando un rectangulo
+#         fruit_rect = pygame.Rect(int(self.pos.x * cell_size),int(self.pos.y * cell_size),cell_size,cell_size)
+#         #Dibujar el rectangulo
+#         pygame.draw.rect(screen,(255,50,50),fruit_rect)
+
+pygame.init() #Inicio del juego
+cell_size = 40 #Tamaño de las celdas
+cell_number = 20 #Numero de celdas
+screen = pygame.display.set_mode((cell_number * cell_size, cell_number * cell_size)) #Display surface, la ventana ejecutable.
+clock = pygame.time.Clock() #Para controlar tiempos en el ciclo.
+
+# fruit = Fruit() 
+snake = Snake()
+
+#Ciclo de juego.
 while True:
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT: #Boton de cerrar
             #Salir de la ventana
             pygame.quit()
-            sys.exit()
-    #Puede recibirlo como RGB en tuple o Color Object
-    # screen.fill(pygame.Color('gold'))
-    screen.fill((205, 255, 45))
-    #Block Image Transfer (Para transferir el surface al display surface, x, y position)
-    # screen.blit(test_surface, test_rect) #test_rect posicion.
+            sys.exit() #Implementado al principio con el import
+    screen.fill((205, 255, 45)) #Fondo 
+    fruit.draw_fruit()
+    snake.draw_snake()
     pygame.display.update()
-    #Recibe como argumento un "Framerate", se refiere a cuánto tiempo este ciclo corre por segundo
     clock.tick(60)
