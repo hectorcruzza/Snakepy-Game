@@ -4,7 +4,7 @@ from pygame.math import Vector2
 class Snake:
     def __init__(self): #Inicio
         self.body = [Vector2(5,10),Vector2(6,10),Vector2(7,10),Vector2(8,10)] #El cuerpo de la serpiente.
-        self.direction = Vector2(1,0) #Input del jugador.
+        self.direction = Vector2(0,-1) #Input del jugador.
 
     def draw_snake(self): #Dibujar a la serpiente
         for block in self.body:
@@ -21,17 +21,17 @@ class Snake:
         self.body = body_copy[:]               
 
 class Fruit:
-    def start(self): #Inicio
+    def __init__(self): #Inicio
         #Crear un cuadro, usando y, x position.
         self.x = random.randint(0,cell_number - 1) #Uso de random para generar una fruta en una coordenada x al azar.
         self.y = random.randint(0,cell_number - 1) #Uso de random para generar una fruta en una coordenada y al azar.
         self.pos = Vector2(self.x,self.y) #Evitar poner pygame.math implementandolo. Se hace uso de vectores para la posición. Tablero dividido en cuadros.
 
-    # def draw_fruit(self):
-    #     #Creando un rectangulo
-    #     fruit_rect = pygame.Rect(int(self.pos.x * cell_size),int(self.pos.y * cell_size),cell_size,cell_size)
-    #     #Dibujar el rectangulo
-    #     pygame.draw.rect(screen,(255,50,50),fruit_rect)
+    def draw_fruit(self):
+        # Creando un rectangulo
+        fruit_rect = pygame.Rect(int(self.pos.x * cell_size),int(self.pos.y * cell_size),cell_size,cell_size)
+        # Dibujar el rectangulo
+        pygame.draw.rect(screen,(255,50,50),fruit_rect)
 
 pygame.init() #Inicio del juego
 cell_size = 40 #Tamaño de las celdas
@@ -39,7 +39,7 @@ cell_number = 20 #Numero de celdas
 screen = pygame.display.set_mode((cell_number * cell_size, cell_number * cell_size)) #Display surface, la ventana ejecutable.
 clock = pygame.time.Clock() #Para controlar tiempos en el ciclo.
 
-# fruit = Fruit() 
+fruit = Fruit() 
 snake = Snake()
 
 SCREEN_UPDATE = pygame.USEREVENT #Eventos en mayusculas. Un evento que podemos rastrear.
@@ -53,9 +53,8 @@ while True:
             sys.exit() #Implementado al principio con el import
         if event.type == SCREEN_UPDATE: #Mover a la serpiente.
             snake.move_snake() 
-    
     screen.fill((205, 255, 45)) #Fondo 
-    # fruit.draw_fruit()
+    fruit.draw_fruit()
     snake.draw_snake()
     pygame.display.update()
     clock.tick(60) #Fotogramas por segundo.
