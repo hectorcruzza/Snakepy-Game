@@ -1,12 +1,11 @@
 import pygame, sys,random
 from pygame.math import Vector2
 import cv2
-# from pyvidplayer import Video
 
 class Snake:
     def __init__(self): #Inicio
         self.body = [Vector2(5,10),Vector2(4,10),Vector2(3,10)] #El cuerpo de la serpiente.
-        self.direction = Vector2(1,0) #Input del jugador.
+        self.direction = Vector2(0,0) #Input del jugador.
         self.new_block = False
         self.speed = 150  # Velocidad inicial en milisegundos
 
@@ -93,6 +92,13 @@ class Snake:
     def add_block(self): #Añadir nuevo bloque a la serpiente
         self.new_block = True
 
+    def reset(self):
+        self.body = [Vector2(5,10),Vector2(4,10),Vector2(3,10)] 
+        self.direction = Vector2(0,0)
+        self.speed = 150
+        pygame.time.set_timer(SCREEN_UPDATE,self.speed)
+        Main.score = 0
+
 class Fruit:
     def __init__(self): #Inicio
         #Crear un cuadro, usando y, x position.
@@ -103,7 +109,6 @@ class Fruit:
         fruit_rect = pygame.Rect(int(self.pos.x * cell_size),int(self.pos.y * cell_size),cell_size,cell_size)
         screen.blit(apple,fruit_rect)
         # Dibujar el rectangulo
-        # pygame.draw.rect(screen,(255,255,255),fruit_rect)
 
     def randomize(self):
         self.x = random.randint(0,cell_number - 1) #Uso de random para generar una fruta en una coordenada x al azar.
@@ -111,6 +116,8 @@ class Fruit:
         self.pos = Vector2(self.x,self.y) #Evitar poner pygame.math implementandolo. Se hace uso de vectores para la posición. Tablero dividido en cuadros.
 
 class Main:
+    score, max_score = 0, 0
+
     def __init__(self):
         self.snake = Snake()
         self.fruit = Fruit()
@@ -123,12 +130,22 @@ class Main:
     def draw_elements(self):
         self.fruit.draw_fruit()
         self.snake.draw_snake()
+        self.draw_score()
+        self.draw_max_score()
 
     def check_collision(self):
         if self.fruit.pos == self.snake.body[0]: #Detectando colision de la serpiente con la fruta
             self.fruit.randomize()
             self.snake.add_block()
-            
+            Main.score += 1
+
+        if ((score_x, score_y)) == self.fruit.pos or ((apple_x, apple_y)) == self.fruit.pos:
+            self.fruit.randomize()
+
+        for block in self.snake.body[1:]:
+            if block == self.fruit.pos:
+                self.fruit.randomize()
+        
     def check_fail(self): #Checar si pierde la serpiente tocando el borde del tablero o chocando contra ella misma.
         if not 0 <= self.snake.body[0].x < cell_number or not 0 <= self.snake.body[0].y < cell_number:
             self.game_over()
@@ -138,10 +155,27 @@ class Main:
                  self.game_over() 
 
     def game_over(self):
-        pygame.quit()
-        sys.exit()
+        self.snake.reset()
 
+    def draw_score(self):
+        global score_x, score_y, apple_x, apple_y, score_text
+        score_text = str(Main.score)
+        # score_text = str(len(self.snake.body) - 3)
+        score_surface = game_font.render(score_text,True,(255,255,255))
+        score_x = int (cell_size * cell_number - 60)
+        score_y = int (cell_size * cell_number - 46)
+        apple_x = int (cell_size * cell_number - 100)
+        apple_y = int (cell_size * cell_number - 53)
+        screen.blit(score_surface, (score_x, score_y))
+        screen.blit(apple,(apple_x, apple_y))
 
+    def draw_max_score(self):
+        max_score_text = str(Main.max_score)
+        if Main.score > Main.max_score:
+            Main.max_score = Main.score
+        max_score_surface = game_font.render(max_score_text,True,(255,255,255))
+        screen.blit(max_score_surface, (64, 12.5))
+        screen.blit(trofeo, (20, 10))
 
 pygame.init() #Inicio del juego
 cell_size = 40 #Tamaño de las celdas
@@ -149,10 +183,9 @@ cell_number = 20 #Numero de celdas
 screen = pygame.display.set_mode((cell_number * cell_size, cell_number * cell_size)) #Display surface, la ventana ejecutable.
 clock = pygame.time.Clock() #Para controlar tiempos en el ciclo.
 apple = pygame.image.load('Graficos/fruit.png').convert_alpha() #Añadiendo gráfico al bocadillo
-# fondo = pygame.image.load('Graficos/fondo.jpeg').convert_alpha()
+game_font = pygame.font.Font('Fuente/Retro Gaming.ttf', 25)
+trofeo = pygame.image.load('Graficos/trofeo.png').convert_alpha()
 fondo_movimiento = cv2.VideoCapture("Graficos/fondo_movimiento.mp4")
-
-
 
 SCREEN_UPDATE = pygame.USEREVENT #Eventos en mayusculas. Un evento que podemos rastrear.
 pygame.time.set_timer(SCREEN_UPDATE,150) #Actualización cada 150 milisegundos.
@@ -164,7 +197,6 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT: #Boton de cerrar
             #Salir de la ventana
-            # vid.close()
             pygame.quit()
             sys.exit() #Implementado al principio con el import
         if event.type == SCREEN_UPDATE: #Mover a la serpiente.
@@ -183,7 +215,6 @@ while True:
                 if main_game.snake.direction.x != -1:
                     main_game.snake.direction = Vector2(1, 0)
 
-    # vid.draw(screen, (0, 0))
     ret, frame = fondo_movimiento.read()
     if not ret:
         fondo_movimiento.set(cv2.CAP_PROP_POS_FRAMES, 0)
