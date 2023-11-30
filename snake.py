@@ -2,11 +2,26 @@ import pygame, sys,random
 from pygame.math import Vector2
 import cv2
 
+class Menu:
+    def __init__(self):
+        self.start_background = cv2.VideoCapture("Graficos/menu_inicio.mp4")
+        pygame.mixer.music.load('Sonidos/musica_menu.mp3')
+        pygame.mixer.music.play(-1)
+
+    def draw_menu(self):
+        ret, frame = self.start_background.read()
+        if not ret:
+            self.start_background.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            _, frame = self.start_background.read()
+        self.start_background_surf = pygame.image.frombuffer(frame.tobytes(), frame.shape[1::-1], "BGR")
+        screen.blit(self.start_background_surf, (0, 0))
+
 class Snake:
     def __init__(self): #Inicio
         self.body = [Vector2(5,10),Vector2(4,10),Vector2(3,10)] #El cuerpo de la serpiente.
         self.direction = Vector2(0,0) #Input del jugador.
         self.new_block = False
+        self.collision_playing = False
         self.speed = 150  # Velocidad inicial en milisegundos
 
         self.head_up = pygame.image.load('Graficos/head_up.png').convert_alpha()
@@ -26,6 +41,8 @@ class Snake:
         self.body_tl = pygame.image.load('Graficos/body_tl.png').convert_alpha()
         self.body_br = pygame.image.load('Graficos/body_br.png').convert_alpha()
         self.body_bl = pygame.image.load('Graficos/body_bl.png').convert_alpha()
+        self.crunch_sound = pygame.mixer.Sound('Sonidos/crunch.wav')
+        self.collision_sound = pygame.mixer.Sound('Sonidos/colisionn.mp3')
 
     def draw_snake(self): #Dibujar a la serpiente
         self.update_head_graphics()
@@ -92,6 +109,9 @@ class Snake:
     def add_block(self): #Añadir nuevo bloque a la serpiente
         self.new_block = True
 
+    def play_crunch_sound(self):
+        self.crunch_sound.play()
+    
     def reset(self):
         self.body = [Vector2(5,10),Vector2(4,10),Vector2(3,10)] 
         self.direction = Vector2(0,0)
@@ -137,9 +157,10 @@ class Main:
         if self.fruit.pos == self.snake.body[0]: #Detectando colision de la serpiente con la fruta
             self.fruit.randomize()
             self.snake.add_block()
+            self.snake.play_crunch_sound()
             Main.score += 1
 
-        if ((score_x, score_y)) == self.fruit.pos or ((apple_x, apple_y)) == self.fruit.pos:
+        if ((score_x, score_y)) == self.fruit.pos or ((apple_x, apple_y)) == self.fruit.pos or (((64, 12.5))) == self.fruit.pos or (((20, 10))) == self.fruit.pos:
             self.fruit.randomize()
 
         for block in self.snake.body[1:]:
@@ -147,12 +168,22 @@ class Main:
                 self.fruit.randomize()
         
     def check_fail(self): #Checar si pierde la serpiente tocando el borde del tablero o chocando contra ella misma.
+        global collision_sound_playing, game_started
         if not 0 <= self.snake.body[0].x < cell_number or not 0 <= self.snake.body[0].y < cell_number:
             self.game_over()
-
-        for block in self.snake.body[1:]:
-             if block == self.snake.body[0]:
-                 self.game_over() 
+            if not collision_sound_playing and game_started:
+                death_sound.play()
+                collision_sound_playing = True
+        else:
+            for block in self.snake.body[1:]:
+                if block == self.snake.body[0]:
+                    self.game_over()
+                    if not collision_sound_playing and game_started:
+                        death_sound.play()
+                        collision_sound_playing = True
+                    break
+            else:
+                collision_sound_playing = False
 
     def game_over(self):
         self.snake.reset()
@@ -160,7 +191,6 @@ class Main:
     def draw_score(self):
         global score_x, score_y, apple_x, apple_y, score_text
         score_text = str(Main.score)
-        # score_text = str(len(self.snake.body) - 3)
         score_surface = game_font.render(score_text,True,(255,255,255))
         score_x = int (cell_size * cell_number - 60)
         score_y = int (cell_size * cell_number - 46)
@@ -177,6 +207,9 @@ class Main:
         screen.blit(max_score_surface, (64, 12.5))
         screen.blit(trofeo, (20, 10))
 
+collision_sound_playing = False
+game_started = False 
+pygame.mixer.pre_init(44100,-16,2,512)
 pygame.init() #Inicio del juego
 cell_size = 40 #Tamaño de las celdas
 cell_number = 20 #Numero de celdas
@@ -186,11 +219,14 @@ apple = pygame.image.load('Graficos/fruit.png').convert_alpha() #Añadiendo grá
 game_font = pygame.font.Font('Fuente/Retro Gaming.ttf', 25)
 trofeo = pygame.image.load('Graficos/trofeo.png').convert_alpha()
 fondo_movimiento = cv2.VideoCapture("Graficos/fondo_movimiento.mp4")
+death_sound = pygame.mixer.Sound('Sonidos/colisionn.mp3')
 
 SCREEN_UPDATE = pygame.USEREVENT #Eventos en mayusculas. Un evento que podemos rastrear.
 pygame.time.set_timer(SCREEN_UPDATE,150) #Actualización cada 150 milisegundos.
 
 main_game = Main()
+menu = Menu()
+in_menu = True
 
 #Ciclo de juego.
 while True:
@@ -199,28 +235,40 @@ while True:
             #Salir de la ventana
             pygame.quit()
             sys.exit() #Implementado al principio con el import
-        if event.type == SCREEN_UPDATE: #Mover a la serpiente.
-            main_game.update()
-        if event.type == pygame.KEYDOWN: #Presionar cualquier tecla.
-            if event.key == pygame.K_UP:
-                if main_game.snake.direction.y != 1:
-                    main_game.snake.direction = Vector2(0, -1)
-            if event.key == pygame.K_DOWN:
-                if main_game.snake.direction.y != -1:
-                    main_game.snake.direction = Vector2(0, 1)
-            if event.key == pygame.K_LEFT:
-                if main_game.snake.direction.x != 1:
-                    main_game.snake.direction = Vector2(-1, 0)
-            if event.key == pygame.K_RIGHT:
-                if main_game.snake.direction.x != -1:
-                    main_game.snake.direction = Vector2(1, 0)
 
-    ret, frame = fondo_movimiento.read()
-    if not ret:
-        fondo_movimiento.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        _, frame = fondo_movimiento.read()
-    fondo_movimiento_surf = pygame.image.frombuffer(frame.tobytes(), frame.shape[1::-1], "BGR")
-    screen.blit(fondo_movimiento_surf, (0, 0)) #Fondo 
-    main_game.draw_elements()
+        if in_menu:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    in_menu = False
+                    pygame.mixer.music.stop()
+
+        else:
+            if event.type == SCREEN_UPDATE: #Mover a la serpiente.
+                main_game.update()
+            if event.type == pygame.KEYDOWN: #Presionar cualquier tecla.
+                game_started = True
+                if event.key == pygame.K_UP:
+                    if main_game.snake.direction.y != 1:
+                        main_game.snake.direction = Vector2(0, -1)
+                if event.key == pygame.K_DOWN:
+                    if main_game.snake.direction.y != -1:
+                        main_game.snake.direction = Vector2(0, 1)
+                if event.key == pygame.K_LEFT:
+                    if main_game.snake.direction.x != 1:
+                        main_game.snake.direction = Vector2(-1, 0)
+                if event.key == pygame.K_RIGHT:
+                    if main_game.snake.direction.x != -1:
+                        main_game.snake.direction = Vector2(1, 0)
+
+    if in_menu:
+        menu.draw_menu()
+    else:
+        ret, frame = fondo_movimiento.read()
+        if not ret:
+            fondo_movimiento.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            _, frame = fondo_movimiento.read()
+        fondo_movimiento_surf = pygame.image.frombuffer(frame.tobytes(), frame.shape[1::-1], "BGR")
+        screen.blit(fondo_movimiento_surf, (0, 0)) #Fondo 
+        main_game.draw_elements()
     pygame.display.update()
     clock.tick(60) #Fotogramas por segundo.
